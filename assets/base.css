@@ -1,0 +1,240 @@
+html, body {
+    height: 100%;
+}
+body {
+    margin: 0;
+    font-weight: 300;
+    font-family: 'Microsoft YaHei',Arial,Helvetica,sans-serif;
+    overflow: hidden;
+}
+a, a:hover, a:visited, a:active, a:link{
+    color: inherit;
+}
+.simplebar-scrollbar:before {
+    background-color: #888;
+    opacity: 10%;
+}
+.container {
+    display: flex;
+}
+.container-v {
+    display: flex;
+    flex-direction: column;
+}
+#base-container {
+    height: 100%;
+    position: relative;
+}
+#nav {
+    padding: 15px 30px 5px 30px;
+    font-size: 30px;
+    font-weight: 100;
+}
+#version {
+    font-size: 20px;
+    margin: 11px 0 auto 10px;
+}
+#nav-items {
+    margin: auto 0 auto auto;
+    height: 35px;
+    align-items: center;
+}
+#nav-items img {
+    width: 26px;
+    height: 26px;
+    color: #000;
+    cursor: pointer;
+}
+#nav-items img:hover {
+    filter: drop-shadow(2px 2px 0.5px rgb(0 0 0 / 0.3));
+}
+.control {
+    width: 32px!important;
+    height: 32px!important;
+}
+.nav-sep {
+    display: inline-block;
+    height: 26px;
+    margin: 16px;
+    border-left: 1px solid #000;
+}
+#main {
+    flex: 1 0 auto;
+    margin: 0 25px 10px 25px;
+}
+.frame {
+    margin: 15px 0;
+}
+.frame-head {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    border-radius: 5px 5px 0 0;
+}
+.frame-head span {
+    border-radius: 5px 5px 0 0;
+    border-right: 1px solid #000;
+    background-color: #ddd;
+    margin-right: -5px;
+    padding: 6px 7px 2px 12px;
+    cursor: pointer;
+}
+.frame-head span:first-child {
+    border-right: none;
+    padding-right: 8px;
+}
+.frame-head span:last-child {
+    padding-left: 7px;
+}
+.frame-head img {
+    height: 18px;
+    width: 18px;
+}
+.frame-head-active {
+    background-color: #eee!important;
+    cursor: default!important;
+}
+.frame-body {
+    flex: 1 0 auto;
+    border-radius: 0 10px 10px 10px;
+    padding: 5px 10px;
+    overflow-y: auto;
+}
+.dark-bg {
+    background-color: #eee;
+}
+.sep {
+    margin: 10px;
+}
+.tree-root {
+    overflow-x: hidden;
+    padding-top: 5px;
+    padding-left: 3px;
+}
+.tree-root span, .tree-root p {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 22px;
+    margin: 0;
+}
+.std-code {
+    font-size: 10px;
+    line-height: 18px;
+}
+.tree-root ul {
+    margin: 0px;
+    list-style-type: none;
+    padding-left: 8px;
+}
+.tree-root li {
+    margin-left: -100px;
+    padding-left: 100px;
+    border-top: 1px solid #ddd;
+    cursor: pointer;
+}
+.tree-root img {
+    height: 10px;
+    margin-left: -10px;
+    margin-right: 5px;
+    transition: transform 300ms;
+}
+.arrow-expanded {
+    transform: rotate(90deg);
+}
+#standard-download-icon>img {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+#frame-left {
+    flex: 3;
+}
+#frame-right {
+    flex: 5;
+    border-radius: 10px;
+    position: relative;
+}
+#standard-main {
+    margin: 10px 15px;
+}
+.mask {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: inherit;
+    z-index: 10;
+    background-color: #eee;
+    opacity: 80%;
+}
+#loading-mask img {
+    width: 50px;
+    height: 50px;
+    position: absolute;
+    margin-left: -25px;
+    margin-top: -25px;
+    top: 50%;
+    left: 50%;
+    opacity: 75%;
+}
+.pop-page {
+    z-index: 20;
+    position: absolute;
+    width: 600px;
+    height: 300px;
+    top: 50%;
+    left: 50%;
+    margin-left: -300px;
+    margin-top: -150px;
+    background-color: #dfdfdf;
+    border-radius: 10px;
+    box-shadow: 3px 3px 8px 0px #ccc;
+    padding: 10px 15px;
+}
+.pop-title {
+    font-size: 24px;
+    line-height: 25px;
+}
+.pop-close {
+    cursor: pointer;
+    margin-left: auto;
+    height: 25px;
+}
+.pop-nav {
+    margin-bottom: 15px;
+    height: 25px;
+}
+#pop-message {
+    z-index: 30;
+    position: absolute;
+    width: 400px;
+    height: auto;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #dfdfdf;
+    border-radius: 8px;
+    box-shadow: 3px 3px 8px 0px #ccc;
+    padding: 10px 15px;
+}
+#message-text {
+    text-align: center;
+}
+#message-buttons {
+    width: 100%;
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+}
+.button {
+    cursor: pointer;
+    border: 1px solid #666;
+    border-radius: 5px;
+    padding: 2px 8px;
+}
+.content-block {
+    font-size: 16px;
+    margin: 15px 0px;
+    border-bottom: 1px solid #aaa;
+}
