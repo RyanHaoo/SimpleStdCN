@@ -1,0 +1,5 @@
+parsel==1.6.0
+pywebview==3.6.1
+PyYAML==6.0
+rarfile==4.0
+requests==2.27.1
