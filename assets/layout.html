@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8"> 
+        <link rel="stylesheet" href="simplebar.css"/>
+        <link rel="stylesheet" href="base.css">
+        <script src="jquery-3.6.0.min.js"></script>
+        <script src="simplebar.min.js"></script>
+        <script src="base.js"></script>
+    </head>
+    <body>
+        <div class="container-v" id="base-container">
+            <div class="container pywebview-drag-region" id="nav">
+                <span id="title">Simple Standards CN</span>
+                <span id="version">prototype-0</span>
+                <div id="nav-items" class="container">
+                    <img id="like" data-for="pop-like" src="svg/like.svg"></img>
+                    <div class="nav-sep"></div>
+                    <img id="about" data-for="pop-about" src="svg/info.svg"></img>
+                    <div class="nav-sep"></div>
+                    <img id="settings" data-for="pop-settings" src="svg/tools.svg"></img>
+                    <div class="nav-sep"></div>
+                    <img class="control" id="minimize" src="svg/minus.svg"></img>
+                    <div class="nav-sep"></div>
+                    <img class="control" id="close" src="svg/close.svg"></img>
+                </div>
+            </div>
+            <div class="container" id="main">
+                <div class="container-v frame" id="frame-left">
+                    <div class="frame-head" id="frame-left-head">
+                        <span data-for="local">
+                            <img src="svg/local.svg">
+                        </span>
+                        <span data-for="search">
+                            <img src="svg/search.svg">
+                        </span>
+                        <span data-for="folder">
+                            <img src="svg/folder.svg">
+                        </span>
+                    </div>
+                    <div class="frame-body fix-height dark-bg">
+                        <div id="folder" style="display:none;">
+                            <div class="tree-root">
+                                <ul id="folder-root"></ul>
+                            </div>
+                        </div>
+                        <div id="search" style="display:none;">
+                            <input type="text" id="search-input"></input>
+                            <span id="search-button">search</span>
+                        </div>
+                        <div id="local" style="display:none;">
+                            <div class="tree-root">
+                                <ul id="local-root">
+                                    <!-- <li class="directory">
+                                        <img src="svg/arrow.svg"/>
+                                        <span>下载中</span>
+                                        <ul id="downloading-root"></ul>
+                                    </li> -->
+                                    <li class="directory">
+                                        <img src="svg/arrow.svg"/>
+                                        <span>已下载</span>
+                                        <ul id="downloaded-root"></ul>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="frame sep"></div>
+                <div class="frame fix-height dark-bg" id="frame-right">
+                    <div id="loading-mask" class="mask" style="display:none">
+                        <img src="svg/search.svg">
+                    </div>
+                    <div id="standard-main" style="display:none">
+                        <div>
+                            <span id="standard-title"></span>
+                        </div>
+                        <div>
+                            <span id="standard-code"></span>
+                        </div>
+                        <div id="standard-download-icon">
+                            <img id="standard-download" src="svg/download.svg"/>
+                            <img id="standard-downloading" src="svg/downloading.svg"/>
+                            <img id="standard-downloaded" src="svg/open.svg"/>
+                        </div>
+                        <hr/>
+
+                        <div>
+                            <span>标准英文: </span>
+                            <span id="standard-title_english"></span>
+                        </div>
+                        <div>
+                            <span>状态: </span>
+                            <span id="standard-status"></span>
+                        </div>
+                        <div>
+                            <span>发文部门: </span>
+                            <span id="standard-issued_by"></span>
+                        </div>
+                        <div>
+                            <span>发文日期: </span>
+                            <span id="standard-issuance_date"></span>
+                        </div>
+                        <div>
+                            <span>实行日期: </span>
+                            <span id="standard-implementation_date"></span>
+                        </div>
+                        <div>
+                            <span>被替代: </span>
+                            <span id="standard-substitute"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="pop-mask" class="mask" style="display:none"></div>
+            <div class="pop-page fix-height" id="pop-about" style="display:none;">
+                <div class="pop-nav container">
+                    <span class="pop-title">About</span>
+                    <img class="pop-close" src="svg/close.svg"></img>
+                </div>
+                <div class="pop-content">
+                    <div class="content-block">
+                        <p>SimpleStandardCN 是一个用于分类及搜索下载国家和行业标准的开源、免费应用，代码遵循
+                            <a href="https://spdx.org/licenses/Apache-2.0.html" target="_blank">
+                                Apache-2.0 协议
+                            </a>
+                            开源，托管于
+                            <a href="https://github.com" target="_blank">
+                                Github
+                            </a>
+                        </p>
+                    </div>
+                    <div class="content-block">
+                        <p>
+                            主要开发: how
+                        </p>
+                        <p>
+                            测试: 
+                        </p>
+                    </div>
+                    <div class="content-block">
+                        <p>使用的第三方组件:</p>
+                        <p>
+                            (CC-BY-3.0) Icons by
+                            <a href="https://thenounproject.com/shuaibtawfeeq/" target="_blank">
+                                shuai tawf
+                            </a>
+                            from
+                            <a href="https://thenounproject.com" target="_blank">NounProject.com</a>
+                            :
+                            <br/>
+                            cancel #2993148, Minus #2995932, Info #2993169, tools #2995989,
+                            Download #2812166, Folder #2993178, Search #2817466, chevron right #2993151,
+                            Download #2993163, hourglass #2993172, like #2993167
+                        </p>
+                        <p>
+                            (BSD-3-Clause)
+                            <a href="https://github.com/r0x0r/pywebview" target="_blank">
+                                PywebView
+                            </a>
+                        </p>
+                        <p>
+                            (Apache-2.0)
+                            <a href="https://github.com/psf/requests" target="_blank">
+                                requests
+                            </a>
+                        </p>
+                        <p>
+                            (MIT)
+                            <a href="https://github.com/yaml/pyyaml" target="_blank">
+                                pyYAML
+                            </a>
+                        </p>
+                        <p>
+                            (MIT)
+                            <a href="https://github.com/jquery/jquery" target="_blank">
+                                jQuery
+                            </a>
+                        </p>
+                        <p>
+                            (MIT)
+                            <a href="https://github.com/Grsmto/simplebar" target="_blank">
+                                simplebar
+                            </a>
+                        </p>
+                    </div>
+                    <div class="content-block">
+                        <p>
+                            本应用<b>不是</b>标准信息及电子版的分发者、制作者或所有者。
+                            所有标准信息及下载均来自程序自动<b>网络实时搜索</b>，
+                            本应用只提供搜索得到的信息<b>本身 ('AS IS')</b>，
+                            版权、责任等请咨询应用搜索时反馈的查询源，
+                            本应用不保证信息的准确性、真实性、时效性，也不对您的使用负任何责任。
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="pop-page fix-height" id="pop-like" style="display:none;">
+                <div class="pop-nav container">
+                    <span class="pop-title">Like</span>
+                    <img class="pop-close" src="svg/close.svg"></img>
+                </div>
+                <div class="pop-content">
+                    <p>感谢对本项目的支持！</p>
+                    <ul>
+                        <p>您可以做以下事项，以使项目变得更好：</p>
+                        <li>将项目推荐给更多的人；</li>
+                        <li>前往项目 Github 提交代码；</li>
+                        <li>前往项目 Github 提交 Issue，内容可包括bug、意见、建议、功能要求等；</li>
+                        <li>前往标准分类数据的 Github，提交对分类数据的完善、修改；</li>
+                        <li>给开发者发邮件：提交代码、修改，指出bug、问题，提建议、要求
+                            <del>，发猫猫图</del>等；
+                        </li>
+                        <li>前往QQ群提交上述内容</li>
+                    </ul>
+                    <p>再次感谢对本项目的支持！</p>
+                </div>
+            </div>
+            <div class="pop-page fix-height" id="pop-settings" style="display:none;">
+                <div class="pop-nav container">
+                    <span class="pop-title">Settings</span>
+                    <img class="pop-close" src="svg/close.svg"></img>
+                </div>
+                <div class="pop-content">
+                    <h1>Settings</h1>
+                </div>
+            </div>
+            <div id="pop-message" style="display:none">
+                <div id="message-title"></div>
+                <div id="message-text">
+                </div>
+                <div id="message-buttons">
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,13 @@
+# py
+/venv
+__pycache__
+
+# build
+/build
+/dist
+
+# app
+/download
+/.sscn_cache
+/sscn.log
+/config.yaml
