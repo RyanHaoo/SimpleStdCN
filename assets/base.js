@@ -90,7 +90,36 @@ $(function(){
 
     $("#search-button").click(function(){
         const query = $("#search-input").val();
-        setStandard(query, '');
+        const $results = $("#search-results");
+
+        // clear old results
+        $results.empty();
+        
+        pywebview.api.is_concret_code(query).then(function(concret) {
+            if (concret) {
+                setStandard(query, '');
+                return
+            } 
+            pywebview.api.search_standards(query).then(function(standards) {
+                if (standards == 'TOO_MANY_RESULTS') {
+                    $results.append($("<p>结果过多，请更换搜索词</p>"));
+                    return
+                } else if (standards.length === 0) {
+                    $results.append($("<p>无搜索结果</p>"));
+                    return
+                }
+                $.each(standards, function(i, standard) {
+                    $("<li class='search-result'>")
+                        .append($("<div class='search-head'>")
+                            .append($("<div class='search-code'>").text(standard.code))
+                            .append($("<div class='search-status'>").text(standard.status))
+                            )
+                        .append($("<div class='search-title'>").text(standard.title))
+                        .click(function() { setStandard(standard.code) })
+                        .appendTo($results);
+                });
+            });
+        });
     });
 
     $("#standard-download").click(function(){

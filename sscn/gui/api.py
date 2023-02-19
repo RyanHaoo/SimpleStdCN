@@ -7,6 +7,7 @@ import yaml
 from sscn.settings import settings
 from sscn.utils import NotFound, get_absolute_path
 from sscn.standard import Standard, StandardCode
+from sscn.origins import csres
 from .folder import load_folder_tree, load_folder_file, load_downloaded_tree
 
 
@@ -29,6 +30,16 @@ class Api:
         std = Standard(code)
         self.cached_standards[code] = std
         return std
+
+    def is_concret_code(self, string):
+        try:
+            code = StandardCode.parse(string)
+        except ValueError:
+            return False
+        return code.is_concret()
+
+    def search_standards(self, query):
+        return csres.search_standards(query)
 
     def get_fields(self, code, fields):
         std = self._get_standard(code)

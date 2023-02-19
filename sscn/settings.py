@@ -11,6 +11,7 @@ DEFAULT_SETTINGS = {
     'AUTO_LATEST': True,
     'CACHE_DIR': '.sscn_cache',
     'SHOW_WECHAT_LOGIN_CODE_FUNC': show_wechat_login_code,
+    'MAX_SEARCH_PAGES': 20,
 }
 
 

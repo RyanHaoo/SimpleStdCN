@@ -34,13 +34,14 @@ class StandardCode(BaseStdCode):
     ——————————————— prefix:      行业标准代号
     """
     FIELDS = {
+        'GB': '国家标准',
         'JC': '建材',
         'CJ': '城镇建设',
         'JG': '建筑工业',
     }
     CODE_PATTERN = re.compile(
-        r'(?P<prefix>[A-Z]{2}[A-SU-Z]?)?'     # prefix: (GB)T (CJJ)T
-        r'[-\_/／\\\s]*(?P<mandatory>T?)'  # mandatory: \(T) /(T) -(T) 
+        r'(?P<prefix>[A-Z]{2}[A-SU-Z]?)'      # prefix: (GB)T (CJJ)T
+        r'[-\_/／\\\s]*(?P<mandatory>T?)'     # mandatory: \(T) /(T) -(T) 
         r'[-\_\s]*(?P<number>[0-9]+)'         # number
         r'(\.(?P<part>[0-9]))?'               # part
         r'[-\_\s]*(?P<year>[0-9]{4}|[5-9][0-9])?' # year
@@ -53,23 +54,24 @@ class StandardCode(BaseStdCode):
         return super().__new__(cls, number, prefix, is_mandatory, year, part)
 
     def __str__(self):
-        if self.is_concret():
-            return '{}{} {}{}-{}'.format(
-                self.prefix,
-                '' if self.is_mandatory else '/T',
-                self.number,
-                f'.{self.part}' if self.part else '',
-                self.year,
-            )
+        return '{}{} {}{}{}'.format(
+            self.prefix,
+            '' if self.is_mandatory else '/T',
+            self.number,
+            f'.{self.part}' if self.part else '',
+            f'-{self.year}' if self.year else '',
+        )
+    
+    def __repr__(self):
         return '<StandardCode number={!r}, prefix={!r}, '\
             'is_mandatory={!r}, year={!r}, part={!r}>'.format(
                 self.number, self.prefix, self.is_mandatory, self.year, self.part
             )
 
     @classmethod
-    def parse(cls, code):
+    def parse(cls, code, fullmatch=False):
         code = code.strip().upper()
-        match = cls.CODE_PATTERN.search(code)
+        match = cls.CODE_PATTERN.fullmatch(code) if fullmatch else cls.CODE_PATTERN.search(code)
         if not match:
             raise ValueError(
                 '"{}" is not a valid standard code.'.format(code)

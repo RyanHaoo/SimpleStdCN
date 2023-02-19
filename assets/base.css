@@ -230,3 +230,36 @@ body {
     border-radius: 5px;
     padding: 2px 8px;
 }
+
+#search-results {
+    padding: 0;
+    list-style: none; 
+}
+
+.search-result {
+    border-top: 1px solid #ddd;
+    cursor: pointer;
+}
+
+.search-head {
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: bolder;
+}
+
+.search-code {
+    display: inline;
+}
+
+.search-title {
+    font-size: 10px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.search-status {
+    display:inline;
+    margin-left: 20px;
+    color: green;
+}
