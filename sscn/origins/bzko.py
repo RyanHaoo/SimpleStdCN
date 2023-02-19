@@ -17,9 +17,7 @@ class BzkoSearchPage(SearchXPathPage):
 
     def get_query_params(self):
         code = self.origin.std.code
-        keyword = '{}-{}'.format(
-            code.number, code.year
-        )
+        keyword = f'{code.number}{f".{code.part}" if code.part else ""}-{code.year}'
         return {'keyword': keyword}
 
     def is_entry_matching(self, entry):

@@ -38,7 +38,7 @@ class BZOrgSearchPage(SearchXPathPage):
 
     def get_query_params(self):
         code = self.origin.std.code
-        search_str = '{}-{}'.format(code.number, code.year)
+        search_str = f'{code.number}{f".{code.part}" if code.part else ""}-{code.year}'
         return {'q': search_str}
 
     def request(self, url, **kwargs):

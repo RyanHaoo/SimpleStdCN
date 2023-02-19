@@ -30,6 +30,10 @@ class StandardCodeTestCase(TestCase):
             StdCode('50001'): (
                 '50001', ' 50001-', 'T50001-',
             ),
+            # part
+            StdCode('50001', part=1, year=2021): (
+                '50001.1-2021', '50001.1 2021',
+            )
         }
 
         for target, code_strs in CASES.items():
@@ -39,9 +43,10 @@ class StandardCodeTestCase(TestCase):
                     self.assertEqual(parsed, target)
 
     def test_new(self):
-        code = StdCode(50001, 'GB', False, '2010')
+        code = StdCode(50001, 'GB', False, '2010', '2')
         self.assertEqual(code.number, '50001')   # `number` should be str
         self.assertEqual(code.year, 2010)        # `year` should be int
+        self.assertEqual(code.part, 2)           # `part` should be int
 
     def test_is_concret(self):
         code = StdCode('50001', 'GB', False)
@@ -60,9 +65,11 @@ class StandardCodeTestCase(TestCase):
         self.assertEqual(code.std_type, '建筑工业领域行业标准')
         code = code._replace(prefix='OOJ')
         self.assertEqual(code.std_type, '其他领域工程建设行业标准')
-        
+
     def test_str(self):
         code = StdCode('50001', 'GB', False, 2010)
         self.assertEqual(str(code), 'GB/T 50001-2010')
+        code = code._replace(part=1)
+        self.assertEqual(str(code), 'GB/T 50001.1-2010')
         code = code._replace(is_mandatory=True)
-        self.assertEqual(str(code), 'GB 50001-2010')
+        self.assertEqual(str(code), 'GB 50001.1-2010')

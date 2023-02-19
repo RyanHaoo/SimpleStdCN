@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 BaseStdCode = namedtuple(
     'BaseStdCode',
-    ('number', 'prefix', 'is_mandatory', 'year'),
+    ('number', 'prefix', 'is_mandatory', 'year', 'part'),
     )
 
 class StandardCode(BaseStdCode):
@@ -40,27 +40,30 @@ class StandardCode(BaseStdCode):
     }
     CODE_PATTERN = re.compile(
         r'(?P<prefix>[A-Z]{2}[A-SU-Z]?)?'     # prefix: (GB)T (CJJ)T
-        r'[-\_/／\\\s]*(?P<is_mandatory>T?)'  # mandatory: \(T) /(T) -(T) 
-        r'[-\_\s]*(?P<number>[0-9]+)'           # number
+        r'[-\_/／\\\s]*(?P<mandatory>T?)'  # mandatory: \(T) /(T) -(T) 
+        r'[-\_\s]*(?P<number>[0-9]+)'         # number
+        r'(\.(?P<part>[0-9]))?'               # part
         r'[-\_\s]*(?P<year>[0-9]{4}|[5-9][0-9])?' # year
     )
 
-    def __new__(cls, number, prefix=None, is_mandatory=None, year=None):
+    def __new__(cls, number, prefix=None, is_mandatory=None, year=None, part=None):
         number = str(number)
         year = int(year) if year else None
-        return super().__new__(cls, number, prefix, is_mandatory, year)
+        part = int(part) if part else None
+        return super().__new__(cls, number, prefix, is_mandatory, year, part)
 
     def __str__(self):
         if self.is_concret():
-            return '{}{} {}-{}'.format(
+            return '{}{} {}{}-{}'.format(
                 self.prefix,
                 '' if self.is_mandatory else '/T',
                 self.number,
+                f'.{self.part}' if self.part else '',
                 self.year,
             )
         return '<StandardCode number={!r}, prefix={!r}, '\
-            'is_mandatory={!r}, year={!r}>'.format(
-                self.number, self.prefix, self.is_mandatory, self.year
+            'is_mandatory={!r}, year={!r}, part={!r}>'.format(
+                self.number, self.prefix, self.is_mandatory, self.year, self.part
             )
 
     @classmethod
@@ -72,7 +75,10 @@ class StandardCode(BaseStdCode):
                 '"{}" is not a valid standard code.'.format(code)
                 )
 
-        prefix, mandatory, number, year = match.groups()
+        prefix, mandatory, number, part, year = match.group(
+            'prefix', 'mandatory', 'number', 'part', 'year',
+        )
+
         is_mandatory = ('T' not in mandatory) if prefix else None
         if year:
             # 95 -> 1995
@@ -86,6 +92,7 @@ class StandardCode(BaseStdCode):
             is_mandatory=is_mandatory,
             number=number,
             year=year,
+            part=part,
             )
         return code_obj
 
