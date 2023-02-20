@@ -106,21 +106,28 @@ class CSRESDetailPage(DetailXPathPage):
         return fields
 
 
-def search_standards(query):
-    url = 'http://www.csres.com/s.jsp?'
-    entry_xpath = r'//tr[starts-with(@title,"编号")]'
+def process_query(query):
+    if ((query.startswith('"') and query.endswith('"'))
+            or (query.startswith("'") and query.endswith("'"))
+            ):
+        return query[1:-1]
 
-    code = None
-    search_results = []
-
-    # process query string
     try:
         code = StandardCode.parse(query)
     except ValueError:
         pass
     else:
         query = str(code).replace(' ', '') + ('-' if code.year is None else '')
+    return query
 
+
+def search_standards(raw_query):
+    url = 'http://www.csres.com/s.jsp?'
+    entry_xpath = r'//tr[starts-with(@title,"编号")]'
+
+    query = process_query(raw_query)
+
+    search_results = []
     current_page = 1
     while True:
         # make request
