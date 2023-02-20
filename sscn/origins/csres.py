@@ -1,4 +1,5 @@
 import re
+import logging
 import parsel
 
 from ..settings import settings
@@ -6,6 +7,8 @@ from ..utils import NotFound
 from ..standard import Origin, Status, StandardCode
 from ..page import DetailXPathPage, SearchXPathPage
 
+
+logger = logging.getLogger(__name__)
 
 class CSRESSearchPage(SearchXPathPage):
     public_fields = (
@@ -106,6 +109,124 @@ class CSRESDetailPage(DetailXPathPage):
         return fields
 
 
+MANDATORY_MULTIPLIER = 0.5
+BASIC_STD_MULTIPLIER = 1.5
+BASIC_STD_KEYS = ('通用', '统一')
+IMPORTANCE_SUFFIX_SCORE = {
+    '标准': 30, '规范': 30,
+    '规程': 20, '要求': 20,
+    '指南': 10,
+    '__others__': 10,
+}
+CATEGORY_SUFFIX_SCORE = {
+    '设计': 30,
+    '防火': 25, '制图': 25, '术语': 25,
+    '规划': 10,
+    '技术': 0,
+    '__others__': 10,
+}
+CATEGORY_SUFFIX_SCORE.update((word, -15) for word in [
+    '方法', '施工', '鉴定', '试验', '检验', '维护',
+    '验收', '测试', '计算', '法'])
+RELEVANCE_MULTIPLIER = {
+    'GBJ': 3.0,     # for GB 5xxxx standards
+    'GB': 0.8,      # for other GB standards
+    'JGJ': 2, 'JG': 1,
+    'JCJ': 0.5, 'JC': 0.2,
+    'CJJ': 0.5, 'CJ': 0.2,
+}
+OUTDATED_PENALTY = -2
+EXCLUDE_KEYWORDS = ('石油', '化工', '化学', '油气', '铁路', '电厂', '电力', '煤炭',
+    '轨道', '通信', '配件', '信息系统', '水利', '水电', '冶金', '纺织', '艇', '000',
+    '生产', '采矿', '船', '电气', '交易', '机械', '报文', '桥梁', '储罐',)
+EXCLUDE_KEYWORDS_PENALTY = -60
+
+SEPERATORS = r'\(（\[【_\s'
+def _compute_standard_sorting_key(code, title):
+    base_score = 10
+    multiplier = 1
+
+    # standart parts
+    if code.part:
+        search_subtitle = re.match(f'(.+)[{SEPERATORS}]+'+r'第[0-9]{1,2}部分.*', title)
+        multiplier += -0.5
+        if search_subtitle:
+            title = search_subtitle.group(1)
+
+    # search for edit version
+    search_version = re.match(f'(.+)[{SEPERATORS}]+'+r'第?[0-9]{4}.*版.*', title)
+    if search_version:
+        title = search_version.group(1)
+        multiplier += 0.5
+
+    # search for attach
+    search_attach = re.match(f'(.+)[{SEPERATORS}]+附.+', title)
+    if search_attach:
+        title = search_attach.group(1)
+        multiplier += 0.2
+
+    # importance level
+    for level, value in IMPORTANCE_SUFFIX_SCORE.items():
+        if title.endswith(level):
+            title = title[:-len(level)]
+            base_score += value
+            break
+    else:
+        base_score += IMPORTANCE_SUFFIX_SCORE['__others__']
+
+    # basic keywords
+    for key in BASIC_STD_KEYS:
+        if title.endswith(key):
+            title = title[:-len(key)]
+            multiplier += BASIC_STD_MULTIPLIER
+
+    # category
+    for cate, value in CATEGORY_SUFFIX_SCORE.items():
+        if title.endswith(cate):
+            title = title[:-len(cate)]
+            base_score += value
+            break
+    else:
+        base_score += CATEGORY_SUFFIX_SCORE['__others__']
+
+    # remaining title length
+    length = len(title)
+    if length <= 7:
+        length_multiplier = 0.2 * (7-len(title))
+    else:
+        length_multiplier = 0.05 * (7-len(title))
+    multiplier += length_multiplier
+
+    # relevance to archi
+    if (code.prefix == 'GB'
+            and len(code.number) == 5
+            and code.number.startswith('5')
+            ):
+        multiplier += RELEVANCE_MULTIPLIER['GBJ']
+        if int(code.number[2:]) < 120:
+            multiplier += 0.5
+    else:
+        multiplier += RELEVANCE_MULTIPLIER[code.prefix[:2]]
+
+    # mandatory
+    if code.is_mandatory:
+        multiplier += MANDATORY_MULTIPLIER
+
+    # outdated
+    if code.year < 2007:
+        multiplier += OUTDATED_PENALTY
+
+    # excluded words
+    if any(word in title for word in EXCLUDE_KEYWORDS):
+        base_score += EXCLUDE_KEYWORDS_PENALTY
+
+    score = max(base_score, 1) * max(multiplier, 0.05)
+    # make sure parts are sorted together
+    if code.part:
+        score -= 0.01*code.part
+
+    return score
+
 def process_query(query):
     if ((query.startswith('"') and query.endswith('"'))
             or (query.startswith("'") and query.endswith("'"))
@@ -120,6 +241,16 @@ def process_query(query):
         query = str(code).replace(' ', '') + ('-' if code.year is None else '')
     return query
 
+
+def compute_standard_sorting_key(standard):
+    code = standard['code']
+    title = standard['title']
+    try:
+        score = _compute_standard_sorting_key(code, title)
+    except Exception:
+        logger.error('Error summarizing `%s`.', str(code), exc_info=1)
+        return -1
+    return score
 
 def search_standards(raw_query):
     url = 'http://www.csres.com/s.jsp?'
@@ -158,7 +289,7 @@ def search_standards(raw_query):
                 continue
 
             search_results.append({
-                'code': str(parsed),
+                'code': parsed,
                 'title': result.xpath(r'./td[2]/font/text()').get(),
                 'status': result.xpath(r'./td[5]/font/text()').get(),
                 })
@@ -176,8 +307,10 @@ def search_standards(raw_query):
         current_page += 1
 
     # sort results
-    search_results.sort(key=lambda res: len(res['title']))
+    search_results.sort(key=compute_standard_sorting_key, reverse=True)
 
+    for result in search_results:
+        result['code'] = str(result['code'])
     return search_results
 
 
