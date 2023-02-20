@@ -88,10 +88,21 @@ $(function(){
         e.stopPropagation();
     });
 
+    // fix mask position messed by simplebar
+    $("#search-mask").prependTo($(".frame-body"));
+    
+    $("#search-input").keydown(function(event) {
+        if (event.key !== 'Enter') {
+            return
+        }
+        event.preventDefault();
+        $("#search-button").click();
+    });
     $("#search-button").click(function(){
         const query = $("#search-input").val();
         const $results = $("#search-results");
 
+        $("#search-input").blur();    // prevent further editing & searching
         // clear old results
         $results.empty();
         
@@ -100,12 +111,16 @@ $(function(){
                 setStandard(query, '');
                 return
             } 
+            $("#search-mask").fadeIn(100);
+
             pywebview.api.search_standards(query).then(function(standards) {
                 if (standards == 'TOO_MANY_RESULTS') {
                     $results.append($("<p>结果过多，请更换搜索词</p>"));
+                    $("#search-mask").fadeOut(200);
                     return
                 } else if (standards.length === 0) {
                     $results.append($("<p>无搜索结果</p>"));
+                    $("#search-mask").fadeOut(200);
                     return
                 }
                 $.each(standards, function(i, standard) {
@@ -114,10 +129,14 @@ $(function(){
                             .append($("<div class='search-code'>").text(standard.code))
                             .append($("<div class='search-status'>").text(standard.status))
                             )
-                        .append($("<div class='search-title'>").text(standard.title))
+                        .append($("<div class='search-title'>")
+                                    .text(standard.title)
+                                    .attr("title", standard.title)
+                                    )
                         .click(function() { setStandard(standard.code) })
                         .appendTo($results);
                 });
+                $("#search-mask").fadeOut(200);
             });
         });
     });

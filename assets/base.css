@@ -165,15 +165,17 @@ body {
     background-color: #eee;
     opacity: 80%;
 }
-#loading-mask img {
-    width: 50px;
-    height: 50px;
+.mask img {
     position: absolute;
-    margin-left: -25px;
-    margin-top: -25px;
     top: 50%;
     left: 50%;
     opacity: 75%;
+}
+#loading-mask img {
+    width: 50px;
+    height: 50px;
+    margin-left: -25px;
+    margin-top: -25px;
 }
 .pop-page {
     z-index: 20;
@@ -230,36 +232,35 @@ body {
     border-radius: 5px;
     padding: 2px 8px;
 }
-
 #search-results {
     padding: 0;
     list-style: none; 
 }
-
 .search-result {
     border-top: 1px solid #ddd;
     cursor: pointer;
 }
-
 .search-head {
     margin-top: 4px;
     font-size: 12px;
     font-weight: bolder;
 }
-
 .search-code {
     display: inline;
 }
-
 .search-title {
     font-size: 10px;
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
 }
-
 .search-status {
     display:inline;
     margin-left: 20px;
     color: green;
+}
+#search-mask img {
+    width: 30px;
+    margin-left: -15px;
+    margin-top: -30px;
 }
