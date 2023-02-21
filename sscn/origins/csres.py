@@ -7,6 +7,8 @@ from ..utils import NotFound
 from ..standard import Origin, Status, StandardCode
 from ..page import DetailXPathPage, SearchXPathPage
 
+# pylint: disable=missing-class-docstring
+# no need
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +19,6 @@ class CSRESSearchPage(SearchXPathPage):
     origin_only_fields = ('detail_page_url',)
     preferred_fields = ('status',)
 
-    # search_url = 'http://www.csres.com/advanced/s.jsp?STATE=-1&pageSize=45&SortIndex=3&WayIndex=1&searchType=1'
     search_url = 'http://www.csres.com/s.jsp?'
     entry_xpath = r'//tr[starts-with(@title,"编号")]'
     field_xpaths = {
@@ -43,8 +44,8 @@ class CSRESSearchPage(SearchXPathPage):
         code = entry.xpath(r'./td[1]/a/font/text()').get()
         return str(self.origin.std.code) in code
 
-    def extract_fields(self, base):
-        fields = super().extract_fields(base)
+    def extract_fields(self, content):
+        fields = super().extract_fields(content)
 
         issued_by, issuance_date = self.INFO_TEMPLATE.search(
             fields['_info']).groups()
@@ -74,13 +75,13 @@ class CSRESDetailPage(DetailXPathPage):
             NotFound),
     }
 
-    def extract_fields(self, base):
-        fields = super().extract_fields(base)
+    def extract_fields(self, content):
+        fields = super().extract_fields(content)
 
         substitutes = []
         partial_substitutes = []
         replaced = []
-        subtitute_texts = base.xpath(
+        subtitute_texts = content.xpath(
             r'.//tr[td/span/strong[text()="替代情况："]]/td[2]//*/text()',
             ).getall()
 
@@ -107,6 +108,14 @@ class CSRESDetailPage(DetailXPathPage):
         fields['replaced'] = replaced or None
 
         return fields
+
+class CSRESOrigin(Origin):
+    """Source of standard: www.csres.com (工标网)"""
+    index = 'www.csres.com'
+    name = 'csres'
+    full_name = '工标网'
+    request_timeout = 10
+    pages = (CSRESSearchPage, CSRESDetailPage,)
 
 
 MANDATORY_MULTIPLIER = 0.5
@@ -228,6 +237,8 @@ def _compute_standard_sorting_key(code, title):
     return score
 
 def process_query(query):
+    """Process a given raw query string to one ready to use."""
+    # leave quoted query as-is
     if ((query.startswith('"') and query.endswith('"'))
             or (query.startswith("'") and query.endswith("'"))
             ):
@@ -243,16 +254,21 @@ def process_query(query):
 
 
 def compute_standard_sorting_key(standard):
+    """Summarize a float value representing the relevance of a standard."""
     code = standard['code']
     title = standard['title']
     try:
         score = _compute_standard_sorting_key(code, title)
-    except Exception:
+    except Exception:    # pylint: disable=broad-exception-caught; not silent
         logger.error('Error summarizing `%s`.', str(code), exc_info=1)
         return -1
     return score
 
 def search_standards(raw_query):
+    """Search for standards using `raw_query`.
+    
+    Returns a sorted list of dicts containing `code`, `title` and `status`
+    """
     url = 'http://www.csres.com/s.jsp?'
     entry_xpath = r'//tr[starts-with(@title,"编号")]'
 
@@ -285,7 +301,9 @@ def search_standards(raw_query):
             except ValueError:
                 continue
             # filter out other fields
-            if not any(parsed.prefix.startswith(field_code) for field_code in StandardCode.FIELDS.keys()):
+            if not any(parsed.prefix.startswith(field_code)
+                    for field_code in StandardCode.FIELDS
+                    ):
                 continue
 
             search_results.append({
@@ -312,11 +330,3 @@ def search_standards(raw_query):
     for result in search_results:
         result['code'] = str(result['code'])
     return search_results
-
-
-class CSRESOrigin(Origin):
-    index = 'www.csres.com'
-    name = 'csres'
-    full_name = '工标网'
-    request_timeout = 10
-    pages = (CSRESSearchPage, CSRESDetailPage,)

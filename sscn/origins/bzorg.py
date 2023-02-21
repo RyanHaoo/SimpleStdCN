@@ -14,6 +14,8 @@ from ..exceptions import ContentNotFound, ContentUnavailable
 from ..standard import Origin, StandardCode, Status
 from ..page import DetailXPathPage, SearchXPathPage, PDFDownloader
 
+# pylint: disable=missing-class-docstring
+# no need
 
 logger = logging.getLogger(__name__)
 
@@ -41,10 +43,10 @@ class BZOrgSearchPage(SearchXPathPage):
         search_str = f'{code.number}{f".{code.part}" if code.part else ""}-{code.year}'
         return {'q': search_str}
 
-    def request(self, url, **kwargs):
+    def request(self, *args, **kwargs):
         query = self.get_query_params()
         kwargs['data'] = query
-        return super().request(url, method='POST', **kwargs)
+        return super().request(*args, method='POST', **kwargs)
 
     def is_entry_matching(self, entry):
         full_title = ''.join(
@@ -53,11 +55,11 @@ class BZOrgSearchPage(SearchXPathPage):
         parsed = StandardCode.parse(full_title)
         return parsed == self.origin.std.code
 
-    def extract_fields(self, base):
-        fields = super().extract_fields(base)
-    
+    def extract_fields(self, content):
+        fields = super().extract_fields(content)
+
         full_title = ''.join(
-            base.xpath(self._full_title_xpath).getall()
+            content.xpath(self._full_title_xpath).getall()
             )
         fields['title'] = re.search(
             r'\d\s(.+)\s*$', full_title).groups()[0]
@@ -96,13 +98,13 @@ class BZOrgDownloadPage(DetailXPathPage):
 
 class BZorgDownloader(PDFDownloader):
     def parse_response(self, response):
-        archive = zipfile.ZipFile(
-            BytesIO(response.content))
-        for file_info in archive.infolist():
-            if not file_info.filename.endswith('.pdf'):
-                continue
-            pdf = archive.open(file_info)
-            return pdf.read()
+        with zipfile.ZipFile(BytesIO(response.content)) as archive:
+            for file_info in archive.infolist():
+                if not file_info.filename.endswith('.pdf'):
+                    continue
+                with archive.open(file_info) as pdf:
+                    return pdf.read()
+
         raise ContentNotFound()
 
 
@@ -115,6 +117,7 @@ class BZorgDownloaderB(BZorgDownloader):
 
 
 class BZOrgOrigin(Origin):
+    """Source of standard: www.biaozhun.org (标准网)"""
     index = 'www.biaozhun.org'
     name = 'biaozhun'
     full_name = '标准网'
@@ -127,38 +130,42 @@ class BZOrgOrigin(Origin):
 
     @classmethod
     def load_cached_session(cls):
+        """Load cached session info from local file"""
         cache_path = get_absolute_path(settings['CACHE_DIR']) / cls.name
         if not cache_path.is_file():
             return False
-        with cache_path.open(encoding='UTF-8') as f:
-            for line in f.readlines():
+        with cache_path.open(encoding='UTF-8') as file:
+            for line in file.readlines():
                 if '=' not in line:
                     continue
-                key, sep, value = line.partition('=')
+                key, _, value = line.partition('=')
                 cls.session.cookies.set(key.strip(), value.strip())
         return True
 
     @classmethod
     def cache_session(cls):
+        """Cache session info to local file"""
         cache_dir = get_absolute_path(settings['CACHE_DIR'])
         if not cache_dir.is_dir():
             os.mkdir(cache_dir)
 
         cache_path =  cache_dir / cls.name
-        with cache_path.open('w', encoding='UTF-8') as f:
+        with cache_path.open('w', encoding='UTF-8') as file:
             for key in (
                 'DedeLoginTime', 'DedeLoginTime__ckMd5',
                 'DedeUserID', 'DedeUserID__ckMd5',
                 ):
                 value = cls.session.cookies.get(key, '')
-                f.write('{}={}\n'.format(key, value))
+                file.write(f'{key}={value}\n')
 
     @classmethod
     def cancel_login(cls):
+        """Cancel ongoing login process"""
         cls._cancel_login = True
 
     @classmethod
     def login(cls):
+        """Login to bzorg"""
         if not cls.session:
             cls.init_session()
 
@@ -185,7 +192,7 @@ class BZOrgOrigin(Origin):
             )
         assert wx_login_page.ok
         selector = parsel.Selector(wx_login_page.text)
-        
+
         check_url = selector.re_first(r'var fordevtool = "(\S*)"')
         img_url = urljoin(
             wx_login_page.url,
@@ -234,10 +241,8 @@ class BZOrgOrigin(Origin):
                 # success
                 break
             else:
-                raise ContentUnavailable(
-                    'Unknow status code {}'.format(code)
-                    )
-            
+                raise ContentUnavailable(f'Unknow status code {code}')
+
         assert status == '405' and code
         login_url = 'https://www.biaozhun.org/member/wx_login.php'
         params = {

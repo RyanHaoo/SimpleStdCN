@@ -4,8 +4,10 @@ from sscn.standard import StandardCode as StdCode
 
 
 class StandardCodeTestCase(TestCase):
+    """Testcase for class `StandardCode`"""
     def test_parse(self):
-        CASES = {
+        """test parsing string code into instance"""
+        cases = {
             # prefix - number
             StdCode('50362', 'GB', True): (
                 'GB50362', 'GB 50362', 'gb50362',
@@ -36,19 +38,21 @@ class StandardCodeTestCase(TestCase):
             )
         }
 
-        for target, code_strs in CASES.items():
+        for target, code_strs in cases.items():
             for code_str in code_strs:
                 with self.subTest(target=target, code=code_str):
                     parsed = StdCode.parse(code_str)
                     self.assertEqual(parsed, target)
 
     def test_new(self):
+        """test initializing"""
         code = StdCode(50001, 'GB', False, '2010', '2')
         self.assertEqual(code.number, '50001')   # `number` should be str
         self.assertEqual(code.year, 2010)        # `year` should be int
         self.assertEqual(code.part, 2)           # `part` should be int
 
     def test_is_concret(self):
+        """test method `is_concret`"""
         code = StdCode('50001', 'GB', False)
         self.assertFalse(code.is_concret())
 
@@ -56,6 +60,7 @@ class StandardCodeTestCase(TestCase):
         self.assertTrue(code.is_concret())
 
     def test_std_type(self):
+        """test getting type of standard codes"""
         code = StdCode('1', 'GB')
         self.assertEqual(code.std_type, '国家标准')
         code = code._replace(prefix='GBJ')
@@ -67,6 +72,7 @@ class StandardCodeTestCase(TestCase):
         self.assertEqual(code.std_type, '其他领域工程建设行业标准')
 
     def test_str(self):
+        """test converting into string"""
         code = StdCode('50001', 'GB', False, 2010)
         self.assertEqual(str(code), 'GB/T 50001-2010')
         code = code._replace(part=1)

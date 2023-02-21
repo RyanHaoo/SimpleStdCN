@@ -1,6 +1,6 @@
 def show_wechat_login_code(origin_cls, url):
-    print('\nScan the code with Wechat to log into `{}`:'.format(
-        origin_cls.full_name))
+    """Display wechat login code in terminal."""
+    print(f'\nScan the code with Wechat to log into `{origin_cls.full_name}`:')
     print(url)
 
 
@@ -16,6 +16,7 @@ DEFAULT_SETTINGS = {
 
 
 class Settings:
+    """Class for application settings."""
     def __init__(self, **kwargs):
         self.default_settings = DEFAULT_SETTINGS
         self.user_settings = kwargs
@@ -23,8 +24,7 @@ class Settings:
     def __getitem__(self, name):
         if name in self.user_settings:
             return self.user_settings[name]
-        else:
-            return self.default_settings[name]
+        return self.default_settings[name]
 
     def __setitem__(self, name, value):
         self.user_settings[name] = value
@@ -33,15 +33,19 @@ class Settings:
         self.user_settings.__delattr__(name)
 
     def get(self, name, default=None):
+        """Get a setting by `name`.
+        
+        `default` is returned if setting `name` isn't found.
+        """
         try:
             val = self[name]
         except KeyError:
             return default
-        else:
-            return val
+        return val
 
-    def update(self, settings):
-        self.user_settings.update(settings)
+    def update(self, new_settings):
+        """Upadate settings with a dict `new_settings`"""
+        self.user_settings.update(new_settings)
 
 
 settings = Settings()

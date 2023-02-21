@@ -10,6 +10,14 @@ logger = logging.getLogger(__name__)
 
 
 def load_dir_tree(path, filename_parser, files_sorting_key=None):
+    """Recursively get the file structure of `path` as a tree-like structure.
+    
+    All file names are parsed by func `filename_parser`
+    Sub-directories are sorted by name
+    File names are optionally sorted by key func `files_sorting_key`
+
+    Returns: list[ Str<file_name> | Tuple(Str<dir_name>, list[...]) ]
+    """
     subdirs = []
     files = []
     for child in path.iterdir():
@@ -30,16 +38,17 @@ def load_dir_tree(path, filename_parser, files_sorting_key=None):
 
 
 def load_folder_tree(path):
+    """Load the file tree of standards classification path."""
     def parser(name):
         if name.endswith('.yaml') or name.endswith('.yml'):
             return name
-        else:
-            return False
+        return False
 
     return load_dir_tree(path, parser)
 
 
 def load_downloaded_tree(path):
+    """Load the file tree of downloaded standards."""
     def parser(name):
         name = name.replace('_', ' ')
         if not name.endswith('.pdf'):
@@ -57,6 +66,7 @@ def load_downloaded_tree(path):
 
 
 def _parse_yaml_tree(nodes):
+    """Parse a file of standards classification into a tree-like structure"""
     subtrees = []
     end_nodes = []
     for node in nodes:
@@ -79,13 +89,14 @@ def _parse_yaml_tree(nodes):
             end_nodes.append({'code': code, 'title': title})
             # assert isinstance(node, str)
             # end_nodes.append(node.strip())
-    
+
     subtrees.extend(end_nodes)
     return subtrees
 
 def load_folder_file(path):
-    with open(path, encoding='UTF8') as f:
-        tree = yaml.safe_load(f)
+    """Load the standards classification info from a file."""
+    with open(path, encoding='UTF8') as file:
+        tree = yaml.safe_load(file)
 
     assert isinstance(tree, list)
     return _parse_yaml_tree(tree)

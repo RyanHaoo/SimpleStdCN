@@ -2,6 +2,8 @@ from ..utils import NotFound
 from ..standard import Origin, StandardCode, Status
 from ..page import DetailXPathPage, SearchXPathPage, PDFDownloader
 
+# pylint: disable=missing-class-docstring
+# no need
 
 class CCSNSearchPage(SearchXPathPage):
     public_fields = ('title', 'title_english', 'status')
@@ -27,8 +29,8 @@ class CCSNSearchPage(SearchXPathPage):
         parsed = StandardCode.parse(title)
         return parsed == self.origin.std.code
 
-    def extract_fields(self, base):
-        fields = super().extract_fields(base)
+    def extract_fields(self, content):
+        fields = super().extract_fields(content)
         fields['title'] = fields['_title'].partition('〗')[2]
         fields['status'] = Status.VALID
         return fields
@@ -58,19 +60,19 @@ class CCSNDetailPage(DetailXPathPage):
             NotFound),
     }
 
-    def extract_fields(self, base):
-        fields = super().extract_fields(base)
+    def extract_fields(self, content):
+        fields = super().extract_fields(content)
 
         download_url_guid = fields['_download_page_url_guid']
         if fields['_downloadable']:
-            download_url = self.parse_url(
+            download_url = self.parse_url_field(
                 '/xxbz/ShowFullText.aspx?Guid='+download_url_guid
             )
             fields['download_page_url'] = download_url
         else:
             fields['download_page_url'] = NotFound
         return fields
-            
+
 
 class CCSNDownloadPage(DetailXPathPage):
     origin_only_fields = ('download_url',)
@@ -86,6 +88,7 @@ class CCSNPDFDownloader(PDFDownloader):
 
 
 class CCSNOrigin(Origin):
+    """Source of standard: www.ccsn.org.cn (国家工程建设标准化信息网)"""
     index = 'www.ccsn.org.cn'
     name = 'ccsn'
     full_name = '国家工程建设标准化信息网'

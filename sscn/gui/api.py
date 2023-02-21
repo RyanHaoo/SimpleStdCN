@@ -2,8 +2,6 @@ import os
 import logging
 from collections import OrderedDict
 
-import yaml
-
 from sscn.settings import settings
 from sscn.utils import NotFound, get_absolute_path
 from sscn.standard import Standard, StandardCode
@@ -15,6 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 class Api:
+    """Api interface for gui"""
+    # pylint: disable=missing-function-docstring
+
     def __init__(self):
         self.cached_standards = OrderedDict()
         self.window = None
@@ -50,13 +51,13 @@ class Api:
                 value = str(value)
             results[field] = value
 
-        logger.debug('Fields returned: {}'.format(results))
+        logger.debug('Fields returned: %s', format(results))
         return results
 
     def download_standard(self, code):
         std = self._get_standard(code)
         prefix = std.code.prefix
-        
+
         # avoid using `parent=True` to avoid making a mess
         download_dir = get_absolute_path(settings['DOWNLOAD_DIR'])
         for dir_path in (download_dir, download_dir/prefix):
@@ -72,9 +73,9 @@ class Api:
         if content is NotFound:
             logger.info('file not found.')
             return 'NOT_FOUND'
-            
-        with open(file_path, 'wb') as f:
-            f.write(content)
+
+        with open(file_path, 'wb') as file:
+            file.write(content)
         return True
 
     def open_standard_pdf(self, code):
@@ -90,17 +91,17 @@ class Api:
         os.startfile(matchings[0])
         return True
 
-    def save_settings(self):
-        with open(self.settings_path, 'w', encoding='UTF8'
-                ) as settings_file:
-            yaml.safe_dump(settings.user_settings, settings_file)
+    # def save_settings(self):
+    #     with open(self.settings_path, 'w', encoding='UTF8'
+    #             ) as settings_file:
+    #         yaml.safe_dump(settings.user_settings, settings_file)
 
     def load_folder_file(self, paths):
         file_path = get_absolute_path(settings['FOLDER_DIR']
             ).joinpath(*paths)
         if not file_path.is_file():
             return False
-        
+
         return load_folder_file(file_path)
 
     def load_folder(self):
@@ -113,12 +114,11 @@ class Api:
         tree = load_downloaded_tree(local_dir)
         return tree
 
+    # TODO
     def show_wechat_login_code(self, origin_cls, url):
-        # TODO
-        self.window.evaluate_js('showBZOrgLoginMessage("{}")'.format(url))
+        self.window.evaluate_js(f'showBZOrgLoginMessage("{url}")')
 
     def cancel_login(self, name):
-        # TODO
         from sscn.origins import bzorg
         return bzorg.BZOrgOrigin.cancel_login()
 

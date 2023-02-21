@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 from argparse import ArgumentParser
 
-from sscn.utils import NotFound
+from sscn.utils import NotFound, get_absolute_path
 from sscn.standard import StandardCode, Standard
 
 
@@ -16,6 +16,10 @@ LOGGING_CONFIG = {
 
 
 class SSCNCLI(cmd.Cmd):
+    """CLI interface"""
+    # pylint: disable=unused-argument
+    # an `arg` is still required for actions that don't use it
+
     intro = 'Welcome to SimpleStdCN\n'
     prompt = '> '
 
@@ -37,12 +41,14 @@ class SSCNCLI(cmd.Cmd):
         super().__init__()
 
     def set_prompt(self):
+        """Setting the cli prompt depending on the state"""
         if self.std:
             self.prompt = str(self.std.code) + ' > '
         else:
             self.prompt = '> '
 
     def print(self, *args, **kwargs):
+        """Print something to the stdout."""
         print(*args, **kwargs)
 
     def precmd(self, line):
@@ -62,17 +68,18 @@ class SSCNCLI(cmd.Cmd):
         """Set standard."""
         try:
             code = StandardCode.parse(arg)
-        except Exception:
+        except ValueError:
             self.print('Not valid.')
             return None
 
         if not code.is_concret():
             self.print('Not concret.')
             return None
-        self.print('Standard set: {}.'.format(code))
+        self.print(f'Standard set: {code}.')
         self.std = Standard(code)
         self.set_prompt()
-    
+        return None
+
     def do_unset(self, arg):
         """Unset current standard."""
         self.std = None
@@ -98,10 +105,8 @@ class SSCNCLI(cmd.Cmd):
         file_path = self.download_dir / file_name
         if file_path.exists():
             self.print(
-                '"{}" is already in the download '
-                'directory "{}"!'.format(
-                    file_name, self.download_dir
-                ))
+                f'"{file_name}" is already in the download '
+                f'directory "{self.download_dir}"!')
             return None
 
         content = self.std.get_field('pdf')
@@ -109,11 +114,9 @@ class SSCNCLI(cmd.Cmd):
             self.print('Can not found file.')
             return None
 
-        with open(file_path, 'wb') as f:
-            f.write(content)
-        self.print('Successfully download to {}.'.format(
-            file_path
-        ))
+        with open(file_path, 'wb') as file:
+            file.write(content)
+        self.print(f'Successfully download to {file_path}.')
         return None
 
     def do_exit(self, arg):
@@ -132,14 +135,11 @@ argparser.add_argument(
 
 
 if __name__ == '__main__':
-    args = vars(argparser.parse_args())
+    parsed_args = vars(argparser.parse_args())
 
-    download_dir = args['download_dir']
-    if not download_dir.is_absolute():
-        download_dir = sys.path[0] / download_dir
-    if not download_dir.is_dir():
-        os.mkdir(download_dir)
+    absolute_download_dir = get_absolute_path(parsed_args['download_dir'])
+    if not absolute_download_dir.is_dir():
+        os.mkdir(absolute_download_dir)
+    parsed_args['download_dir'] = absolute_download_dir
 
-    args['download_dir'] = download_dir
-
-    SSCNCLI(**args).cmdloop()
+    SSCNCLI(**parsed_args).cmdloop()

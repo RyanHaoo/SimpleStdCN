@@ -5,9 +5,11 @@ import rarfile
 
 from ..utils import NotFound
 from ..exceptions import ContentNotFound
-from ..standard import Origin, StandardCode, Status
-from ..page import DetailXPathPage, SearchXPathPage, PDFDownloader, XPathPage
+from ..standard import Origin, StandardCode
+from ..page import DetailXPathPage, SearchXPathPage, PDFDownloader
 
+# pylint: disable=missing-class-docstring
+# no need
 
 class BzkoSearchPage(SearchXPathPage):
     origin_only_fields = ('standard_id',)
@@ -31,8 +33,8 @@ class BzkoSearchPage(SearchXPathPage):
             # prefix is wrongly documented often
         )
 
-    def extract_fields(self, base):
-        detail_url = base.xpath('./@href').get()
+    def extract_fields(self, content):
+        detail_url = content.xpath('./@href').get()
         standard_id = re.search(
             r'/std/([0-9]*)\.html',
             detail_url).group(1)
@@ -70,6 +72,7 @@ class BzkoPDFDownloader(PDFDownloader):
 
 
 class BzkoOrigin(Origin):
+    """Source of standard: www.bzko.com (标准库)"""
     index = 'www.bzko.com'
     name = 'bzko'
     full_name = '标准库'

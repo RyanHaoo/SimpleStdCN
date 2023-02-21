@@ -1,8 +1,7 @@
-import parsel
 import logging
-from sys import exc_info
-from traceback import format_exception
 from urllib.parse import urljoin
+
+import parsel
 
 from .settings import settings
 from .utils import NotFound
@@ -25,17 +24,15 @@ class Page:
         self.origin = origin
         self.request_errored = 0
         self.success = None
-        
+        self.response = None
+
     def __repr__(self):
-        return '<{} code={}>'.format(
-            self.__class__.__name__,
-            self.origin.std.code)
+        return f'<{self.__class__.__name__} code={self.origin.std.code}>'
 
     def get_field(self, name):
         """Fetch and return field `name`.
         """
-        logger.debug(
-            '{!r}: getting field "{}"...'.format(self, name))
+        logger.debug('%r: getting field "%s"...', self, name)
 
         # this page has already been fetched
         if self.success is not None:
@@ -52,27 +49,24 @@ class Page:
 
         try:
             fields = self.fetch()
-        except RequestError as e:
+        except RequestError as err:
             self.success = False
             self.request_errored += 1
-            self.response = e
+            self.response = err
             raise
-        except ContentUnavailable as e:
-            raise e
-        except Exception:
-            logger.error('Page {1} errored:{0}'.format(
-                (' '*4).join(
-                    ['\n']+format_exception(*exc_info())
-                    ),
-                self))
+        except ContentUnavailable as err:
+            raise err
+        except Exception as err:
+            logger.error('Page %s errored:', self, exc_info=1)
             self.success = False
-            raise ContentUnavailable()
-        else:
-            self.success = True
-            self.request_errored = 0
+            raise ContentUnavailable() from err
 
-        logger.debug('{!r}: field "{}" fetched.'.format(
-            self, name, fields[name]))
+        self.success = True
+        self.request_errored = 0
+
+        logger.debug(
+            '%r: field "%s" fetched: `%s`.', self, name, fields[name]
+            )
         return fields[name]
 
     def fetch(self):
@@ -101,13 +95,12 @@ class Page:
         for field_name in self.public_fields + self.origin_only_fields:
             try:
                 field = _fetched_fields.pop(field_name)
-            except KeyError:
+            except KeyError as err:
                 raise TypeError(
-                    'Field `{}` is registered in {} but'
-                    "its `.fetch()` didn't return it.".format(
-                        field_name, self.__class__
-                    ))
-            
+                    f'Field `{field_name}` is registered in {self.__class__}'
+                    "but its `.fetch()` didn't return it."
+                ) from err
+
             preferred = field_name in self.preferred_fields
             receiver = (self.origin
                 if field_name in self.origin_only_fields
@@ -128,6 +121,7 @@ class Page:
         return None
 
     def request(self, *args, **kwargs):
+        """Perform a http request using its `origin`."""
         if self.referer:
             kwargs.setdefault('headers', {}).update({
                 'Referer': self.referer
@@ -137,22 +131,31 @@ class Page:
         return response
 
     def get_url(self):
+        """Get the url to request this page.
+        
+        Implement by subclass.
+        """
         raise NotImplementedError()
 
     def extract_fields(self, content):
+        """Extract value of registered fields from requested `content`.
+        
+        Implement by subclass.
+        """
         raise NotImplementedError()
 
     def parse_response(self, response):
+        """Parse the raw http `response` to its content."""
         return response.text
 
-    def parse_url(self, url):
-        if url:
-            parsed = urljoin(self.response.url, url)
-            return parsed
-        return url
+    def parse_url_field(self, url_field):
+        """Make sure extracted url is complete by joining with the request url."""
+        parsed = urljoin(self.response.url, url_field)
+        return parsed
 
 
 class PDFDownloader(Page):
+    """Abstract page class for downloading field `pdf`."""
     public_fields = ('pdf',)
     url_field = 'download_url'
 
@@ -161,7 +164,7 @@ class PDFDownloader(Page):
         if not url:
             raise ContentNotFound()
         return url
-    
+
     def post_fetch(self, fetched_fields):
         # Disable field cache
         return None
@@ -174,17 +177,23 @@ class PDFDownloader(Page):
 
 
 class XPathPage(Page):
-    """
-    field_xpaths: {
-        'field_name': (
-            'xpath_query',
-            default),
-        }
+    """Abstrat page class that uses xpaths to extract fields.
+
+    base_node_xpath: an xpath str as the root of further searchings
+    field_xpaths: a dict containing `xpath_query` strings for each `field_name`
+                {
+                    'field_name': ('xpath_query', default),
+                    ...
+                }
     """
     base_node_xpath = None
     field_xpaths = None
 
+    def get_url(self):
+        raise NotImplementedError()
+
     def get_base_node(self, html):
+        """Get the base xpath node from html content."""
         root = parsel.Selector(text=html)
         if not self.base_node_xpath:
             return root
@@ -193,29 +202,32 @@ class XPathPage(Page):
         return base
 
     def parse_response(self, response):
+        """Parse raw http response into a root xpath node."""
         html = super().parse_response(response)
         base = self.get_base_node(html)
         return base
 
-    def extract_fields(self, base):
+    def extract_fields(self, content):
+        """Perform xpath search for fields in `field_xpaths` on root `base`."""
         if not self.field_xpaths:
             return {}
 
         fields = {}
         for name, args in self.field_xpaths.items():
             query, default = args
-            field = base.xpath(query).get(NotFound)
+            field = content.xpath(query).get(NotFound)
             if (field is not NotFound
                     and not field):
                 field = default
-            
+
             if name.endswith('url') and field:
-                field = self.parse_url(field)
+                field = self.parse_url_field(field)
             fields[name] = field
         return fields
 
 
 class DetailXPathPage(XPathPage):
+    """Abstract page class to get detailed fields of a standard."""
     url_field = None
 
     def get_url(self):
@@ -224,42 +236,58 @@ class DetailXPathPage(XPathPage):
 
 
 class SearchXPathPage(XPathPage):
+    """Abstract page class to search for a standard."""
     search_url = None
     entry_xpath = None
 
     def get_entries(self, base):
+        """Get all entries from the root xpath node `base`
+        of research request.
+        """
         entries = base.xpath(self.entry_xpath)
         return entries
 
+    def is_entry_matching(self, entry):
+        """Determine whether search result `entry`
+        matches with the required standard.
+        
+        Implement by subclass.
+        """
+        raise NotImplementedError()
+
     def get_entry(self, base):
+        """Get the matching entry from the root xpath node `base`
+        of research request."""
         entries = self.get_entries(base)
         matchings = [e for e in entries if self.is_entry_matching(e)]
         if not matchings:
-            logger.info('Can not find {} in origin `{}`.'.format(
+            logger.info(
+                'Can not find %s in origin `%s`.',
                 self.origin.std.code,
                 self.origin.name,
-            ))
+            )
             raise StandardNotFound()
         return matchings[0]
-
-    def get_url(self):
-        return self.search_url
-
-    def get_query_params(self):
-        raise NotImplementedError()
-
-    def request(self, url, **kwargs):
-        query_params = self.get_query_params()
-        if 'params' in kwargs:
-            kwargs['params'].update(query_params)
-        else:
-            kwargs['params'] = query_params
-        return super().request(url, **kwargs)
-
-    def is_entry_matching(self, entry):
-        raise NotImplementedError()
 
     def get_base_node(self, html):
         base = super().get_base_node(html)
         entry = self.get_entry(base)
         return entry
+
+    def get_url(self):
+        return self.search_url
+
+    def get_query_params(self):
+        """Get the params for performing the GET searching request.
+        
+        Implement by subclass.
+        """
+        raise NotImplementedError()
+
+    def request(self, *args, **kwargs):
+        query_params = self.get_query_params()
+        if 'params' in kwargs:
+            kwargs['params'].update(query_params)
+        else:
+            kwargs['params'] = query_params
+        return super().request(*args, **kwargs)

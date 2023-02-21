@@ -31,13 +31,13 @@ logger = logging.getLogger(__name__)
 
 
 def load_settings():
+    """Load stored local setting."""
     path = get_absolute_path(SETTINGS_FILE)
     if not path.is_file():
         return None
-    else:
-        with open(path, encoding='UTF8') as settings_file:
-            local_settings = yaml.safe_load(settings_file)
-        settings.update(local_settings)
+    with open(path, encoding='UTF8') as settings_file:
+        local_settings = yaml.safe_load(settings_file)
+    settings.update(local_settings)
     return None
 
 
@@ -51,12 +51,12 @@ if __name__ == '__main__':
     )
     std_out_handler = logging.StreamHandler(sys.stdout)
     logging.basicConfig(
-        level=logging._nameToLevel[settings['LOGGING_LEVEL']],
+        level=settings['LOGGING_LEVEL'],
         format=settings['LOGGING_FORMAT'],
         datefmt=settings['LOGGING_DATEFMT'],
         handlers=(file_handler, std_out_handler),
     )
-    logger.debug('PATH: '+os.environ['PATH'])
+    logger.debug('PATH: %s', os.environ['PATH'])
 
     window = webview.create_window(
         'SimpleStandardCN',

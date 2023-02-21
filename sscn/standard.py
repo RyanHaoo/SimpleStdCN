@@ -1,17 +1,14 @@
 import re
 import enum
 import logging
-import requests
 from collections import namedtuple
-from functools import lru_cache
+
+import requests
 
 from sscn.utils import NotFound, HTTPHeaders
-
 from .settings import settings
 from .origins import iter_origin_cls
-from .exceptions import (
-    ContentNotFound, ContentUnavailable, RequestError,
-)
+from .exceptions import ContentUnavailable, RequestError
 
 
 logger = logging.getLogger(__name__)
@@ -54,6 +51,8 @@ class StandardCode(BaseStdCode):
         return super().__new__(cls, number, prefix, is_mandatory, year, part)
 
     def __str__(self):
+        # pylint: disable=consider-using-f-string
+        # too hard to format f-string
         return '{}{} {}{}{}'.format(
             self.prefix,
             '' if self.is_mandatory else '/T',
@@ -61,30 +60,34 @@ class StandardCode(BaseStdCode):
             f'.{self.part}' if self.part else '',
             f'-{self.year}' if self.year else '',
         )
-    
+
     def __repr__(self):
-        return '<StandardCode number={!r}, prefix={!r}, '\
-            'is_mandatory={!r}, year={!r}, part={!r}>'.format(
-                self.number, self.prefix, self.is_mandatory, self.year, self.part
-            )
+        return f'<StandardCode number={self.number}, prefix={self.prefix}, '\
+               f'is_mandatory={self.is_mandatory}, year={self.year}, part={self.part}>'
 
     @classmethod
     def parse(cls, code, fullmatch=False):
+        """Parse code into an instance of `StandardCode`.
+        
+        Raise a ValueError if unable to parse.
+        Perform a fullmatch on `code` if `fullmatch` is truthy,
+          perform a search otherwise.
+        """
         code = code.strip().upper()
-        match = cls.CODE_PATTERN.fullmatch(code) if fullmatch else cls.CODE_PATTERN.search(code)
+        if fullmatch:
+            match = cls.CODE_PATTERN.fullmatch(code)
+        else:
+            match = cls.CODE_PATTERN.search(code)
         if not match:
-            raise ValueError(
-                '"{}" is not a valid standard code.'.format(code)
-                )
+            raise ValueError(f'"{code}" is not a valid standard code.')
 
         prefix, mandatory, number, part, year = match.group(
             'prefix', 'mandatory', 'number', 'part', 'year',
         )
-
         is_mandatory = ('T' not in mandatory) if prefix else None
         if year:
-            # 95 -> 1995
             year = int(year)
+            # 95 -> 1995
             year = year+1900 if year < 100 else year
         else:
             year = None
@@ -99,6 +102,7 @@ class StandardCode(BaseStdCode):
         return code_obj
 
     def is_concret(self):
+        """Whether this code represent a specific standard."""
         return all((
             self.prefix is not None,
             self.is_mandatory is not None,
@@ -107,6 +111,7 @@ class StandardCode(BaseStdCode):
 
     @property
     def std_type(self):
+        """The category type of the standard."""
         if self.prefix is None:
             return '未知标准'
 
@@ -126,6 +131,7 @@ class StandardCode(BaseStdCode):
 
 
 class Status(enum.Enum):
+    """An enum of status of standards"""
     VALID = '现行'
     ISSUED = '即将实施'
     OBSOLETE = '过时'
@@ -133,11 +139,10 @@ class Status(enum.Enum):
 
     def __str__(self):
         return self.value
-        
+
     def is_active(self):
-        return (self == self.VALID
-            or self == self.ISSUED
-            )
+        """Wheteher a standard with this status is regarded as `active`"""
+        return self in {self.VALID, self.ISSUED}
 
 
 class ResourceNode:
@@ -147,11 +152,11 @@ class ResourceNode:
     """
     def __init__(self, **kwargs):
         self.fields = kwargs
+        self.subnodes = {}
 
     @classmethod
-    def iter_subnode_cls(cls, name):
-        """Iters from subnode classes responsible for field `name`
-        """
+    def iter_subnode_cls(cls, field_name):
+        """Iters from subnode classes responsible for field `field_name`"""
         raise NotImplementedError()
 
     def update_field(self, name ,field, preferred=False):
@@ -168,21 +173,21 @@ class ResourceNode:
         """Require a field. Return the cached value or ask its
         subnodes for the value.
         """
-        logger.debug('{!r}: getting field "{}"...'.format(self, name))
+        logger.debug('%r: getting field "%s"...', self, name)
         if name in self.fields:
-            logger.debug('use cached value.'.format(self))
+            logger.debug('%r: use cached value.', self)
             return self.fields[name]
 
         cls_iter = self.iter_subnode_cls(name)
         for cls in cls_iter:
             subnode = self.get_subnode(cls)
-            logger.debug('dispatch to {!r}'.format(subnode))
+            logger.debug('dispatch to %r', subnode)
             try:
                 field = subnode.get_field(name)
             except ContentUnavailable:
                 logger.debug(
-                    '{!r}: catched ContentUnavailable,'
-                    'continue'.format(self))
+                    '%r: catched ContentUnavailable,'
+                    'continue', self)
                 continue
             if field is not NotFound:
                 return field
@@ -190,20 +195,19 @@ class ResourceNode:
 
         # none of the subnodes found the field
         self.fields[name] = NotFound
-        logger.debug('{!r}: field "{}" not found.'.format(self, name))
+        logger.debug('%r: field "%s" not found.', self, name)
         return NotFound
 
-    @lru_cache(maxsize=None)
     def get_subnode(self, cls):
         """Return the subnode instance of class `cls` on this node.
         """
-        # With the cache decorator, each subnode instance
-        #  will have only one instance per ResourceNode class
-        instance = cls(self)
+        # Each subnode has only one instance per ResourceNode class
+        instance = self.subnodes.setdefault(cls, cls(self))
         return instance
 
 
 class Standard(ResourceNode):
+    """Standard class that could search for and cache its fields."""
     def __init__(self, code, **kwargs):
         self.code = code
         self.concret = self.code.is_concret()
@@ -214,28 +218,28 @@ class Standard(ResourceNode):
         if self.concret:
             title = self.fields.get('title')
             if title:
-                return '{} {}'.format(code, title)
+                return f'{code} {title}'
             return code
         return repr(self)
 
     def __repr__(self):
-        return '<Standard code="{}">'.format(self.code)
+        return f'<Standard code="{self.code}">'
 
     @classmethod
-    def iter_subnode_cls(cls, name):
-        return iter_origin_cls(name)
+    def iter_subnode_cls(cls, field_name):
+        return iter_origin_cls()
 
-    def as_file_name(self, suffix='.pdf'):
-        FILENAME_TABLE = str.maketrans({
+    def as_file_name(self, suffix='pdf'):
+        """Make a filename for this standard to store."""
+        filename_table = str.maketrans({
             '/': '-',
             '-': '_',
             ' ': '_'})
         if not self.concret:
             raise TypeError(
                 'Can only get file name of a concret standard instance.')
-        name = str(self)
-        name = name.translate(FILENAME_TABLE)
-        return name + suffix
+        name = str(self).translate(filename_table)
+        return f'{name}.{suffix}'
 
     def get_field(self, name):
         if not self.concret:
@@ -246,13 +250,12 @@ class Standard(ResourceNode):
 
 
 class Origin(ResourceNode):
-    """Base Origin class for subclassing.
-    """
+    """Abstract Origin class for subclassing."""
     # basic info
     index = None
     name = None
     full_name = None
-    
+
     # settings
     pages = ()
     request_timeout = None
@@ -267,15 +270,11 @@ class Origin(ResourceNode):
         super().__init__(**kwargs)
 
     def __repr__(self):
-        return '<{} std="{}">'.format(
-            self.__class__.__name__,
-            self.std.code
-        )
+        return f'<{self.__class__.__name__} std="{self.std.code}">'
 
     @classmethod
     def _get_page_fields(cls, name):
-        """Underlying func of `fields()` and `preferred_fields()`
-        """
+        """Underlying func of `fields()` and `preferred_fields()`"""
         field_set = set()
         for page in cls.pages:
             fields = getattr(page, name)
@@ -288,8 +287,7 @@ class Origin(ResourceNode):
     @classmethod
     @property
     def public_fields(cls):
-        """All public fields registered by pages.
-        """
+        """All public fields registered by pages."""
         if cls._public_fields is None:
             cls._public_fields = cls._get_page_fields(
                 'public_fields')
@@ -298,8 +296,7 @@ class Origin(ResourceNode):
     @classmethod
     @property
     def preferred_fields(cls):
-        """All public preferred fields registered by pages.
-        """
+        """All public preferred fields registered by pages."""
         if cls._preferred_fields is None:
             cls._preferred_fields = cls._get_page_fields(
                 'preferred_fields')
@@ -329,9 +326,7 @@ class Origin(ResourceNode):
         """
         session = requests.session()
         session.headers.update(HTTPHeaders())
-        logger.info('Initiated session for origin `{}`.'.format(
-            cls.__name__
-        ))
+        logger.info('Initiated session for origin `%s`.', cls.__name__)
         cls.session = session
         return session
 
@@ -340,26 +335,26 @@ class Origin(ResourceNode):
         """Make a request with a max retry of MAX_PAGE_RETRY.
         """
         session = cls.session or cls.init_session()
-        logger.info('Requesting `{1}`.{0}'.format(
-            '(retry={})'.format(retry) if retry else '',
-            url
-            ))
+        logger.info('Requesting `%s`. %s',
+            url,
+            f'(retry={retry})' if retry else '',
+            )
         timeout = timeout or cls.request_timeout or settings['TIMEOUT']
 
         try:
             response = session.request(method, url, timeout=timeout, **kwargs)
-        except requests.Timeout as e:
+        except requests.Timeout as err:
             logger.info('Request time out.')
             # retry if time out
             if retry >= settings['REQUEST_MAX_RETRY']:
-                raise RequestError(e)
+                raise RequestError('Request time out.') from err
             return cls.request(
                 url, method=method, retry=retry+1, **kwargs)
-
-        except requests.HTTPError as e:
-            logger.info('Request failed: {} {}'.format(
-                e.status_code,
-                e.reason,
-            ))
+        except requests.HTTPError as err:
+            logger.info(
+                'Request failed: %s %s',
+                err.response.status_code,
+                err.response.reason)
             raise
+
         return response

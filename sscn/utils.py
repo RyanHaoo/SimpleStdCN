@@ -14,6 +14,9 @@ USER_AGENTS = (
 
 
 class HTTPHeaders(dict):
+    """A dict subclass that automaticlly contains
+    some basic HTTP headers when initialized
+    """
     def __init__(self, *args, **kwargs):
         self.update({
             'Accept': 'text/html,*/*',
@@ -24,23 +27,31 @@ class HTTPHeaders(dict):
         super().__init__(*args, **kwargs)
 
 
-class NotFoundType:
+class _NotFoundType:
+    """Represent a value that could not be found.
+    
+    Use initialized `NotFound` instead of make new instances
+    """
     def __bool__(self):
         return False
 
     def __str__(self):
         return '未找到'
 
-NotFound = NotFoundType()
+NotFound = _NotFoundType()
 
 
 def get_absolute_path(path):
+    """Turn any `path` into a working absolute `Path` instance.
+    
+    Works either in code environment or packed environment.
+    """
     path = path if isinstance(path, Path) else Path(path)
     if path.is_absolute():
         return path
 
     if getattr(sys, 'frozen', False):
-        BASE_DIR = Path(sys.executable).parent
+        base_dir = Path(sys.executable).parent
     else:
-        BASE_DIR = Path(sys.path[0])
-    return BASE_DIR / path
+        base_dir = Path(sys.path[0])
+    return base_dir / path
