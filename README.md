@@ -17,3 +17,21 @@
 
 # 技术细节
 本程序使用 python 语言编写，GUI框架使用 pywebview + 原生JS
+
+# 运行
+## Windows
+请直接前往 [Releases](https://github.com/RyanHaoo/SimpleStdCN/releases) 页面下载最新的 zip 包，解压后即可运行；
+
+## 代码运行（全平台）
+1. 下载安装 Python3.8.x （[官网3.8.10](https://www.python.org/downloads/release/python-3810/)）
+2. 下载本程序代码至您的电脑
+
+    a. 方法一：在目标文件夹内执行 `git clone https://github.com/RyanHaoo/SimpleStdCN.git`
+    
+    b. 方法二：在下图处下载代码压缩包，解压至目标文件夹 ![image](https://user-images.githubusercontent.com/100863534/220602634-e07d3f73-4485-4fcf-b8d8-fa5518a24e65.png)
+    
+3. 在下载好的代码根目录处创建虚拟环境 `python -m venv venv`
+4. 链接至虚拟环境 `. venv/bin/activate`(linux/macOS) 或 `.\venv\Scripts\Activate.ps1`(windows)
+5. 安装依赖 `python -m pip install -r requirements.txt`
+6. (非Windows) 参照[此处](https://rarfile.readthedocs.io/faq.html#how-can-i-get-it-work-on-linux-macos)手动安装rarfile依赖，否则将无法从"标准库"下载标准
+7. 运行程序 `python sscn_gui.py`
