@@ -1,10 +1,6 @@
-import io
 import re
 
-import rarfile
-
 from ..utils import NotFound
-from ..exceptions import ContentNotFound
 from ..standard import Origin, StandardCode
 from ..page import DetailXPathPage, SearchXPathPage, PDFDownloader
 
@@ -60,15 +56,7 @@ class BzkoDownloadPage(DetailXPathPage):
 
 
 class BzkoPDFDownloader(PDFDownloader):
-    def parse_response(self, response):
-        archive = rarfile.RarFile(
-            io.BytesIO(response.content))
-        for file_info in archive.infolist():
-            if not file_info.filename.endswith('.pdf'):
-                continue
-            pdf = archive.open(file_info)
-            return pdf.read()
-        raise ContentNotFound()
+    pass
 
 
 class BzkoOrigin(Origin):

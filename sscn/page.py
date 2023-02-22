@@ -1,7 +1,11 @@
+import re
+import io
 import logging
+import zipfile
 from urllib.parse import urljoin
 
 import parsel
+import rarfile
 
 from .settings import settings
 from .utils import NotFound
@@ -64,9 +68,7 @@ class Page:
         self.success = True
         self.request_errored = 0
 
-        logger.debug(
-            '%r: field "%s" fetched: `%s`.', self, name, fields[name]
-            )
+        logger.debug('%r: field "%s" fetched.', self, name)
         return fields[name]
 
     def fetch(self):
@@ -170,7 +172,29 @@ class PDFDownloader(Page):
         return None
 
     def parse_response(self, response):
-        return response.content
+        format_search = re.match(
+            r'attachment; filename=".+\.(\w+)"',
+            response.headers.get('Content-Disposition', ''),
+            )
+        if not format_search:
+            raise ValueError("Response does'n contain an attachment.")
+        file_format = format_search.group(1)
+
+        if file_format == 'pdf':
+            return response.content
+
+        archive_formats = {'zip': zipfile.ZipFile,
+                           'rar': rarfile.RarFile,}
+        if file_format in archive_formats:
+            with archive_formats[file_format](io.BytesIO(response.content)) as archive:
+                for file_info in archive.infolist():
+                    if not file_info.filename.endswith('.pdf'):
+                        continue
+                    with archive.open(file_info) as pdf:
+                        return pdf.read()
+            raise ContentNotFound()
+
+        raise ValueError(f'Unknow file format: "{file_format}"')
 
     def extract_fields(self, content):
         return {'pdf': content}

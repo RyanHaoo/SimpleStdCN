@@ -2,15 +2,13 @@ import re
 import os
 import time
 import logging
-import zipfile
-from io import BytesIO
 from urllib.parse import urljoin
 
 import parsel
 
 from ..settings import settings
 from ..utils import NotFound, get_absolute_path
-from ..exceptions import ContentNotFound, ContentUnavailable
+from ..exceptions import ContentUnavailable
 from ..standard import Origin, StandardCode, Status
 from ..page import DetailXPathPage, SearchXPathPage, PDFDownloader
 
@@ -97,15 +95,7 @@ class BZOrgDownloadPage(DetailXPathPage):
 
 
 class BZorgDownloader(PDFDownloader):
-    def parse_response(self, response):
-        with zipfile.ZipFile(BytesIO(response.content)) as archive:
-            for file_info in archive.infolist():
-                if not file_info.filename.endswith('.pdf'):
-                    continue
-                with archive.open(file_info) as pdf:
-                    return pdf.read()
-
-        raise ContentNotFound()
+    pass
 
 
 class BZorgDownloaderA(BZorgDownloader):
@@ -124,6 +114,7 @@ class BZOrgOrigin(Origin):
     pages = (
         BZOrgSearchPage, BZOrgDetailPage, BZOrgDownloadPage,
         BZorgDownloaderA, BZorgDownloaderB,)
+    request_timeout = 6
 
     logged_in = False
     _cancel_login = False
@@ -164,15 +155,30 @@ class BZOrgOrigin(Origin):
         cls._cancel_login = True
 
     @classmethod
+    def check_login(cls):
+        """Check login status by making a request."""
+        home_page_url = 'https://www.biaozhun.org/member/'
+        home_page_response = cls.request(home_page_url)
+        if '游客您好请扫描下方二维码登入' in home_page_response.text:
+            logger.info('Cached session has expired.')
+            return False
+        return True
+
+    @classmethod
     def login(cls):
         """Login to bzorg"""
         if not cls.session:
             cls.init_session()
 
-        loaded = cls.load_cached_session()
-        if loaded:
-            cls.logged_in = True
-            return None
+        # try loading cached session info
+        if cls.load_cached_session():
+            if cls.check_login():
+                cls.logged_in = True
+                return None
+            # cache expired so forget about it
+            cls.session.cookies.clear()
+            cache_path = get_absolute_path(settings['CACHE_DIR']) / cls.name
+            cache_path.unlink()
 
         logger.info('Logging into www.biaozhun.org...')
 
