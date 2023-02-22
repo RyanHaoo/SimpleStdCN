@@ -264,3 +264,16 @@ body {
     margin-left: -15px;
     margin-top: -30px;
 }
+
+.content-block {
+    padding: 10px 5px 10px 15px;
+    border-bottom: #bbb solid 1px;
+}
+.content-block a {
+    color: #444;
+}
+.block-title {
+    font-size: 14px;
+    margin-left: -10px;
+    margin-bottom: 4px;
+}
