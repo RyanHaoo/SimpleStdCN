@@ -1,6 +1,19 @@
-# TODO
-- [Done] Support searching code without year value
-- [Done] Support searching code that has dot in title
-- Support code that has edits (i.e. xxx-2015: xxxx（2018年版）)
+# 简介
+**SimpleStandardCN 是一个用于分类及搜索下载建筑相关国家和行业标准的开源、免费程序**
 
-- [middle term] Support downloading drawings
+# 数据来源？
+
+本应用<b>不是</b>标准信息及电子文件的分发者、制作者或所有者。
+所有标准信息及下载均来自程序自动<b>网络实时搜索</b>，
+本应用只提供搜索得到的信息<b>本身</b>，
+版权、责任等请本软件使用的查询源。
+本应用不能保证信息的准确性、真实性、时效性，也不对您的使用负任何责任。
+
+*具体而言*，本程序使用的网络查询源为：
+- [工标网](http://www.csres.com)：标准搜索、标准详情信息
+- [国家工程建设标准化信息网](http://www.ccsn.org.cn)：标准详情信息、标准下载
+- [标准网](https://www.biaozhun.org)：标准详情信息、标准下载（下载需登录)
+- [标准库](http://www.bzko.com)：标准下载
+
+# 技术细节
+本程序使用 python 语言编写，GUI框架使用 pywebview + 原生JS
