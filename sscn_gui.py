@@ -62,7 +62,7 @@ if __name__ == '__main__':
         'SimpleStandardCN',
         './assets/layout.html',
         js_api=api,
-        width=800,
+        width=900,
         height=500,
         resizable=False,
         frameless=True,
