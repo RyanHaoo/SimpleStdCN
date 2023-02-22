@@ -49,12 +49,16 @@ if __name__ == '__main__':
         encoding='UTF8',
         mode='w',
     )
-    std_out_handler = logging.StreamHandler(sys.stdout)
+    handlers = [file_handler,]
+    # StreamHandler causes error when frozen without a console
+    if not getattr(sys, 'frozen', False):
+        handlers.append(logging.StreamHandler(sys.stdout))
+
     logging.basicConfig(
         level=settings['LOGGING_LEVEL'],
         format=settings['LOGGING_FORMAT'],
         datefmt=settings['LOGGING_DATEFMT'],
-        handlers=(file_handler, std_out_handler),
+        handlers=handlers,
     )
     logger.debug('PATH: %s', os.environ['PATH'])
 
