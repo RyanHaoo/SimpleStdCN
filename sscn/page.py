@@ -172,6 +172,9 @@ class PDFDownloader(Page):
         return None
 
     def parse_response(self, response):
+        if response.headers.get('Content-Type', None) == 'application/pdf':
+            return response.content
+
         format_search = re.match(
             r'attachment; filename=".+\.(\w+)"',
             response.headers.get('Content-Disposition', ''),
