@@ -19,7 +19,7 @@ class CCSNSearchPage(SearchXPathPage):
     }
 
     def get_query_params(self):
-        code = str(self.origin.std.code).replace(' ', '')
+        code = f'{self.origin.std.code.number}-{self.origin.std.code.year}'
         return {'keyword': code}
 
     def is_entry_matching(self, entry):
