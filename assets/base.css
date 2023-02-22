@@ -6,6 +6,7 @@ body {
     font-weight: 300;
     font-family: 'Microsoft YaHei',Arial,Helvetica,sans-serif;
     overflow: hidden;
+    background-color: #f9f9f9;
 }
 .simplebar-scrollbar:before {
     background-color: #888;
